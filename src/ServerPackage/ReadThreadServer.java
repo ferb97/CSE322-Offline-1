@@ -46,20 +46,22 @@ public class ReadThreadServer implements Runnable{
                        networkUtil.write(clientListString);
                    }
                    else if(str.equalsIgnoreCase("List of All Files of Mine")){
-                       String clientFilesString = "";
-                       for(FileDescription fileDescription: Server.fileDescriptionList){
+                       String clientFilesString = "FileID - FileName - FileType\n";
+                       for(int id: Server.fileDescriptionMap.keySet()){
+                           FileDescription fileDescription = Server.fileDescriptionMap.get(id);
                            if(fileDescription.getClientName().equalsIgnoreCase(clientName)){
-                               clientFilesString += fileDescription.getFileName() + " - " + fileDescription.getFileType() + "\n";
+                               clientFilesString += id + " - " + fileDescription.getFileName() + " - " + fileDescription.getFileType() + "\n";
                            }
                        }
                        System.out.println("Sending All files List of " + clientName + " to " + clientName);
                        networkUtil.write(clientFilesString);
                    }
                    else if(str.equalsIgnoreCase("List of All Public Files of Other Clients")){
-                       String clientFilesString = "";
-                       for(FileDescription fileDescription: Server.fileDescriptionList){
+                       String clientFilesString = "FileID - FileName - FileType\n";
+                       for(int id: Server.fileDescriptionMap.keySet()){
+                           FileDescription fileDescription = Server.fileDescriptionMap.get(id);
                            if(!(fileDescription.getClientName().equalsIgnoreCase(clientName)) && fileDescription.getFileType().equalsIgnoreCase("Public")){
-                               clientFilesString += fileDescription.getFileName() + " - " + fileDescription.getClientName() + "\n";
+                               clientFilesString += id + " - " + fileDescription.getFileName() + " - " + fileDescription.getClientName() + "\n";
                            }
                        }
                        System.out.println("Sending All files List of Other Clients to " + clientName);
@@ -71,18 +73,27 @@ public class ReadThreadServer implements Runnable{
                    if(message.getFunction().equalsIgnoreCase("Upload")){
                        System.out.println("Upload request from " + clientName);
                        System.out.println("File name: " + message.getText() + ", File Size: " + message.getFileSize() + ", File Type: " + message.getFileType());
+                       String fileName = message.getText();
+                       String fileType = message.getFileType();
+                       String filepath = "src/ServerPackage/" + clientName + "/" + fileName;
+                       File file1 = new File(filepath);
+                       if(file1.exists()){
+                           System.out.println(fileName + " already exists in the server directory of " + clientName);
+                           Message message2 = new Message(fileName + " already exists in the server directory of " + clientName, "File Transmission Status");
+                           networkUtil.write(message2);
+                           continue;
+                       }
                        Random random = new Random();
                        int chunkSize = random.nextInt(Server.MAX_CHUNK_SIZE - Server.MIN_CHUNK_SIZE + 1) + Server.MIN_CHUNK_SIZE;
                        Message message1 = new Message("You can start file transmission", "File Transmission Status");
                        message1.setChunkSize(chunkSize);
-                       message1.setFileID(++(Server.fileId));
+                       int fileid = ++(Server.fileId);
+                       message1.setFileID(fileid);
                        networkUtil.write(message1);
-                       String fileName = message.getText();
                        int chunkNo = 0;
                        byte[] buffer = new byte[chunkSize];
                        int bytesRead;
                        ObjectInputStream ois = networkUtil.getOis();
-                       String filepath = "src/ServerPackage/" + clientName + "/" + fileName;
                        BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(filepath));
                        int totalBytesRead = 0;
                        while ((bytesRead = ois.read(buffer)) != -1){
@@ -106,11 +117,12 @@ public class ReadThreadServer implements Runnable{
                        if(totalBytesRead == message.getFileSize()){
                            System.out.println("File Uploaded Successfully");
                            networkUtil.write("File Uploaded Successfully");
+                           FileDescription fileDescription = new FileDescription(fileName, clientName, fileType, filepath);
+                           Server.fileDescriptionMap.put(fileid, fileDescription);
                        }
                        else{
                            System.out.println("File Upload Failed");
                            networkUtil.write("File Upload Failed");
-                           File file1 = new File(filepath);
                            file1.delete();
                        }
                    }

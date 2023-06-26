@@ -1,9 +1,10 @@
-package ClientPackage;
+package ClientPackage;2
 
 import ObjectPackage.Message;
 import util.NetworkUtil;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.util.Scanner;
 
 public class WriteThreadClient implements Runnable{
@@ -52,8 +53,6 @@ public class WriteThreadClient implements Runnable{
                 else if(option == 4){
                     String fileName = "";
                     File file;
-                    String fileType = "";
-                    input.nextLine();
                     while(true){
                         System.out.print("Enter File Name: ");
                         fileName = input.nextLine();
@@ -65,47 +64,15 @@ public class WriteThreadClient implements Runnable{
                             break;
                         }
                     }
-                    while(true){
-                        System.out.print("Enter File Type(Public or Private): ");
-                        fileType = input.nextLine();
-                        if(fileType.equalsIgnoreCase("Public") || fileType.equalsIgnoreCase("Private")){
-                            break;
-                        }
-                        else{
-                            System.out.println("Enter Public or Private");
-                        }
-                    }
                     long fileSize = file.length();
                     Message message = new Message(fileName, "Upload");
                     message.setFileSize(fileSize);
-                    message.setFileType(fileType);
-                    System.out.println("File Size: " + fileSize + ", File Type: " + fileType);
+                    System.out.println("File Size: " + fileSize);
                     networkUtil.write(message);
                     Object object = networkUtil.read();
                     Message message1 = (Message) object;
                     if(message1.getText().equalsIgnoreCase("You can start file transmission")){
                         System.out.println("Chunk Size: " + message1.getChunkSize() + ", File ID: " + message1.getFileID());
-                        int chunkNo = 0;
-                        byte[] buffer = new byte[message1.getChunkSize()];
-                        int bytesRead;
-                        ObjectOutputStream oos = networkUtil.getOos();
-                        BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream(fileName));
-                        while ((bytesRead = bufferedInputStream.read(buffer)) != -1){
-                            oos.write(buffer, 0, bytesRead);
-                            oos.flush();
-                            ++chunkNo;
-                            System.out.println("ChunkNo: " + chunkNo + " with " + bytesRead + " bytes is sent");
-                            String str1 = (String) networkUtil.read();
-                            System.out.println("Server: " + str1);
-                        }
-                        System.out.println("File Upload Finished");
-                        oos.writeUnshared("File Upload Finished");
-                        String str2 = (String) networkUtil.read();
-                        System.out.println("Server: " + str2);
-                    }
-                    else{
-                        System.out.println("Server: " + message1.getText());
-                        System.out.println(fileName + " upload failed");
                     }
                 }
             }

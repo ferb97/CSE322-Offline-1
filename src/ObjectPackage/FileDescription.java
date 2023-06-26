@@ -4,11 +4,13 @@ public class FileDescription {
     private String fileName;
     private String clientName;
     private String fileType;
+    private String filePath;
 
-    public FileDescription(String fileName, String clientName, String fileType) {
+    public FileDescription(String fileName, String clientName, String fileType, String filePath) {
         this.fileName = fileName;
         this.clientName = clientName;
         this.fileType = fileType;
+        this.filePath = filePath;
     }
 
     public String getFileName() {
@@ -33,5 +35,13 @@ public class FileDescription {
 
     public void setFileType(String fileType) {
         this.fileType = fileType;
+    }
+
+    public String getFilePath() {
+        return filePath;
+    }
+
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
     }
 }

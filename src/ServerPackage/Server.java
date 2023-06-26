@@ -15,7 +15,7 @@ public class Server {
     private ServerSocket serverSocket;
     static HashMap<String, NetworkUtil> clientMap;
     static List<String> activeClients;
-    static List<FileDescription> fileDescriptionList;
+    static HashMap<Integer, FileDescription> fileDescriptionMap;
     static int fileId = 0;
     static int MIN_CHUNK_SIZE = 500;
     static int MAX_CHUNK_SIZE = 1500;
@@ -23,17 +23,7 @@ public class Server {
     Server() {
         clientMap = new HashMap<>();
         activeClients = new ArrayList<>();
-        fileDescriptionList = new ArrayList<>();
-        fileDescriptionList.add(new FileDescription("file1.txt", "Piyal", "Private"));
-        fileDescriptionList.add(new FileDescription("file2.txt", "Abrar", "Public"));
-        fileDescriptionList.add(new FileDescription("file3.txt", "Mahmud", "Private"));
-        fileDescriptionList.add(new FileDescription("file4.txt", "Mahmud", "Public"));
-        fileDescriptionList.add(new FileDescription("file5.txt", "Piyal", "Public"));
-        fileDescriptionList.add(new FileDescription("file6.txt", "Mahmud", "Public"));
-        fileDescriptionList.add(new FileDescription("file7.txt", "Abrar", "Private"));
-        fileDescriptionList.add(new FileDescription("file8.txt", "Piyal", "Public"));
-        fileDescriptionList.add(new FileDescription("file9.txt", "Piyal", "Private"));
-        fileDescriptionList.add(new FileDescription("file10.txt", "Abrar", "Private"));
+        fileDescriptionMap = new HashMap<>();
         fileId = 0;
         try {
             serverSocket = new ServerSocket(40000);
