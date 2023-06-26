@@ -1,9 +1,11 @@
 package ServerPackage;
 
 import ObjectPackage.FileDescription;
+import ObjectPackage.Message;
 import util.NetworkUtil;
 
-import java.io.IOException;
+import java.io.*;
+import java.util.Random;
 
 public class ReadThreadServer implements Runnable{
     private Thread thr;
@@ -62,6 +64,55 @@ public class ReadThreadServer implements Runnable{
                        }
                        System.out.println("Sending All files List of Other Clients to " + clientName);
                        networkUtil.write(clientFilesString);
+                   }
+               }
+               else if(object instanceof Message){
+                   Message message = (Message) object;
+                   if(message.getFunction().equalsIgnoreCase("Upload")){
+                       System.out.println("Upload request from " + clientName);
+                       System.out.println("File name: " + message.getText() + ", File Size: " + message.getFileSize() + ", File Type: " + message.getFileType());
+                       Random random = new Random();
+                       int chunkSize = random.nextInt(Server.MAX_CHUNK_SIZE - Server.MIN_CHUNK_SIZE + 1) + Server.MIN_CHUNK_SIZE;
+                       Message message1 = new Message("You can start file transmission", "File Transmission Status");
+                       message1.setChunkSize(chunkSize);
+                       message1.setFileID(++(Server.fileId));
+                       networkUtil.write(message1);
+                       String fileName = message.getText();
+                       int chunkNo = 0;
+                       byte[] buffer = new byte[chunkSize];
+                       int bytesRead;
+                       ObjectInputStream ois = networkUtil.getOis();
+                       String filepath = "src/ServerPackage/" + clientName + "/" + fileName;
+                       BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(filepath));
+                       int totalBytesRead = 0;
+                       while ((bytesRead = ois.read(buffer)) != -1){
+                           int chunkReceived = 0;
+                           bufferedOutputStream.write(buffer, 0, bytesRead);
+                           bufferedOutputStream.flush();
+                           chunkReceived += bytesRead;
+                           while(ois.available() > 0) {
+                               bytesRead = ois.read(buffer);
+                               bufferedOutputStream.write(buffer, 0, bytesRead);
+                               bufferedOutputStream.flush();
+                               chunkReceived += bytesRead;
+                           }
+                           totalBytesRead += chunkReceived;
+                           ++chunkNo;
+                           System.out.println("ChunkNo: " + chunkNo + " received which is " + chunkReceived + " bytes");
+                           networkUtil.write("ChunkNo: " + chunkNo + " received which is " + chunkReceived + " bytes");
+                       }
+                       String str1 = (String) networkUtil.read();
+                       System.out.println(str1);
+                       if(totalBytesRead == message.getFileSize()){
+                           System.out.println("File Uploaded Successfully");
+                           networkUtil.write("File Uploaded Successfully");
+                       }
+                       else{
+                           System.out.println("File Upload Failed");
+                           networkUtil.write("File Upload Failed");
+                           File file1 = new File(filepath);
+                           file1.delete();
+                       }
                    }
                }
             }

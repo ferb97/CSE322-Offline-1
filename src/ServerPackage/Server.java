@@ -3,6 +3,7 @@ package ServerPackage;
 import ObjectPackage.FileDescription;
 import util.NetworkUtil;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -15,6 +16,9 @@ public class Server {
     static HashMap<String, NetworkUtil> clientMap;
     static List<String> activeClients;
     static List<FileDescription> fileDescriptionList;
+    static int fileId = 0;
+    static int MIN_CHUNK_SIZE = 500;
+    static int MAX_CHUNK_SIZE = 1500;
 
     Server() {
         clientMap = new HashMap<>();
@@ -30,6 +34,7 @@ public class Server {
         fileDescriptionList.add(new FileDescription("file8.txt", "Piyal", "Public"));
         fileDescriptionList.add(new FileDescription("file9.txt", "Piyal", "Private"));
         fileDescriptionList.add(new FileDescription("file10.txt", "Abrar", "Private"));
+        fileId = 0;
         try {
             serverSocket = new ServerSocket(40000);
             while (true) {
@@ -47,6 +52,15 @@ public class Server {
         if(clientMap.get(clientName) == null){
             clientMap.put(clientName, networkUtil);
             activeClients.add(clientName);
+            String filepath = "src/ServerPackage/" + clientName;
+            File directory = new File(filepath);
+            if(!directory.exists()){
+                directory.mkdirs();
+                System.out.println("Directory Created for " + clientName);
+            }
+            else{
+                System.out.println("Directory Already Exists");
+            }
             System.out.println("Log in successful for " + clientName);
             networkUtil.write("Welcome: " + clientName);
             new ReadThreadServer(clientName, networkUtil);
