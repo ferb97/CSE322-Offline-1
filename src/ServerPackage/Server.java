@@ -1,5 +1,6 @@
 package ServerPackage;
 
+import ObjectPackage.FileDescription;
 import util.NetworkUtil;
 
 import java.io.IOException;
@@ -13,10 +14,22 @@ public class Server {
     private ServerSocket serverSocket;
     static HashMap<String, NetworkUtil> clientMap;
     static List<String> activeClients;
+    static List<FileDescription> fileDescriptionList;
 
     Server() {
         clientMap = new HashMap<>();
         activeClients = new ArrayList<>();
+        fileDescriptionList = new ArrayList<>();
+        fileDescriptionList.add(new FileDescription("file1.txt", "Piyal", "Private"));
+        fileDescriptionList.add(new FileDescription("file2.txt", "Abrar", "Public"));
+        fileDescriptionList.add(new FileDescription("file3.txt", "Mahmud", "Private"));
+        fileDescriptionList.add(new FileDescription("file4.txt", "Mahmud", "Public"));
+        fileDescriptionList.add(new FileDescription("file5.txt", "Piyal", "Public"));
+        fileDescriptionList.add(new FileDescription("file6.txt", "Mahmud", "Public"));
+        fileDescriptionList.add(new FileDescription("file7.txt", "Abrar", "Private"));
+        fileDescriptionList.add(new FileDescription("file8.txt", "Piyal", "Public"));
+        fileDescriptionList.add(new FileDescription("file9.txt", "Piyal", "Private"));
+        fileDescriptionList.add(new FileDescription("file10.txt", "Abrar", "Private"));
         try {
             serverSocket = new ServerSocket(40000);
             while (true) {
