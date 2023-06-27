@@ -55,6 +55,52 @@ public class ReadThreadServer implements Runnable{
                        }
                        System.out.println("Sending All files List of " + clientName + " to " + clientName);
                        networkUtil.write(clientFilesString);
+                       Object object1 = networkUtil.read();
+                       Message message = (Message) object1;
+                       if(message.getText().equalsIgnoreCase("No")){
+                          networkUtil.write("Going back to menu");
+                          continue;
+                       }
+                       networkUtil.write("You can download files from the above list");
+                       int fid;
+                       FileDescription fileDescription1;
+                       while(true){
+                           Object object2 = networkUtil.read();
+                           Message message1 = (Message) object2;
+                           fid = message1.getFileID();
+                           fileDescription1 = Server.fileDescriptionMap.get(fid);
+                           Message message2 = new Message("Wrong FID!", "FID status");
+                           if(fileDescription1 != null && fileDescription1.getClientName().equalsIgnoreCase(clientName)){
+                               message2.setText("Correct FID");
+                               message2.setFileDescription(fileDescription1);
+                               message2.setChunkSize(Server.MAX_CHUNK_SIZE);
+                               networkUtil.write(message2);
+                               break;
+                           }
+                           networkUtil.write(message2);
+                       }
+                       String str2 = (String) networkUtil.read();
+                       System.out.println(str2);
+                       if(str2.equalsIgnoreCase(fileDescription1.getFileName() + " already exists in the download directory of " + clientName)){
+                           networkUtil.write("File Download Failed");
+                           System.out.println("File Download Failed");
+                           continue;
+                       }
+                       System.out.println("File Name: " + fileDescription1.getFileName() + ", Chunk Size: " + Server.MAX_CHUNK_SIZE);
+                       int chunkNo = 0;
+                       byte[] buffer = new byte[Server.MAX_CHUNK_SIZE];
+                       int bytesRead;
+                       ObjectOutputStream oos = networkUtil.getOos();
+                       BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream(fileDescription1.getFilePath()));
+                       while ((bytesRead = bufferedInputStream.read(buffer)) != -1) {
+                           oos.write(buffer, 0, bytesRead);
+                           oos.flush();
+                           ++chunkNo;
+                           System.out.println("ChunkNo: " + chunkNo + " with " + bytesRead + " bytes is sent");
+                           String str1 = (String) networkUtil.read();
+                       }
+                       System.out.println("File Download Complete");
+                       networkUtil.write("File Download Complete");
                    }
                    else if(str.equalsIgnoreCase("List of All Public Files of Other Clients")){
                        String clientFilesString = "FileID - FileName - FileType\n";
@@ -66,6 +112,52 @@ public class ReadThreadServer implements Runnable{
                        }
                        System.out.println("Sending All files List of Other Clients to " + clientName);
                        networkUtil.write(clientFilesString);
+                       Object object1 = networkUtil.read();
+                       Message message = (Message) object1;
+                       if(message.getText().equalsIgnoreCase("No")){
+                           networkUtil.write("Going back to menu");
+                           continue;
+                       }
+                       networkUtil.write("You can download files from the above list");
+                       int fid;
+                       FileDescription fileDescription1;
+                       while(true){
+                           Object object2 = networkUtil.read();
+                           Message message1 = (Message) object2;
+                           fid = message1.getFileID();
+                           fileDescription1 = Server.fileDescriptionMap.get(fid);
+                           Message message2 = new Message("Wrong FID!", "FID status");
+                           if(fileDescription1 != null && !fileDescription1.getClientName().equalsIgnoreCase(clientName) && fileDescription1.getFileType().equalsIgnoreCase("Public")){
+                               message2.setText("Correct FID");
+                               message2.setFileDescription(fileDescription1);
+                               message2.setChunkSize(Server.MAX_CHUNK_SIZE);
+                               networkUtil.write(message2);
+                               break;
+                           }
+                           networkUtil.write(message2);
+                       }
+                       String str2 = (String) networkUtil.read();
+                       System.out.println(str2);
+                       if(str2.equalsIgnoreCase(fileDescription1.getFileName() + " already exists in the download directory of " + clientName)){
+                           networkUtil.write("File Download Failed");
+                           System.out.println("File Download Failed");
+                           continue;
+                       }
+                       System.out.println("File Name: " + fileDescription1.getFileName() + ", Chunk Size: " + Server.MAX_CHUNK_SIZE);
+                       int chunkNo = 0;
+                       byte[] buffer = new byte[Server.MAX_CHUNK_SIZE];
+                       int bytesRead;
+                       ObjectOutputStream oos = networkUtil.getOos();
+                       BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream(fileDescription1.getFilePath()));
+                       while ((bytesRead = bufferedInputStream.read(buffer)) != -1) {
+                           oos.write(buffer, 0, bytesRead);
+                           oos.flush();
+                           ++chunkNo;
+                           System.out.println("ChunkNo: " + chunkNo + " with " + bytesRead + " bytes is sent");
+                           String str1 = (String) networkUtil.read();
+                       }
+                       System.out.println("File Download Complete");
+                       networkUtil.write("File Download Complete");
                    }
                }
                else if(object instanceof Message){

@@ -1,6 +1,8 @@
 package ObjectPackage;
 
-public class FileDescription {
+import java.io.Serializable;
+
+public class FileDescription implements Serializable {
     private String fileName;
     private String clientName;
     private String fileType;

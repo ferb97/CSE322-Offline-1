@@ -9,6 +9,7 @@ public class Message implements Serializable {
     private int chunkSize;
     private int fileID;
     private String fileType;
+    private FileDescription fileDescription;
 
     public Message(String text, String function) {
         this.text = text;
@@ -61,5 +62,13 @@ public class Message implements Serializable {
 
     public void setFileType(String fileType) {
         this.fileType = fileType;
+    }
+
+    public FileDescription getFileDescription() {
+        return fileDescription;
+    }
+
+    public void setFileDescription(FileDescription fileDescription) {
+        this.fileDescription = fileDescription;
     }
 }

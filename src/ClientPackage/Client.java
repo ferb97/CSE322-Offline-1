@@ -2,6 +2,7 @@ package ClientPackage;
 
 import util.NetworkUtil;
 
+import java.io.File;
 import java.util.Scanner;
 
 public class Client {
@@ -18,6 +19,15 @@ public class Client {
                 System.exit(1);
             }
             else {
+                String filepath = "src/ClientPackage/" + clientName + "Downloads";
+                File directory = new File(filepath);
+                if(!directory.exists()){
+                    directory.mkdirs();
+                    System.out.println("Download Directory Created for " + clientName);
+                }
+                else{
+                    System.out.println("Download Directory Already Exists");
+                }
                 new WriteThreadClient(networkUtil, clientName);
             }
         } catch (Exception e) {
