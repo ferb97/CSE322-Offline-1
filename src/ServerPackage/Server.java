@@ -1,6 +1,7 @@
 package ServerPackage;
 
 import ObjectPackage.FileDescription;
+import ObjectPackage.UnreadMessages;
 import util.NetworkUtil;
 
 import java.io.File;
@@ -16,6 +17,9 @@ public class Server {
     static HashMap<String, NetworkUtil> clientMap;
     static List<String> activeClients;
     static HashMap<Integer, FileDescription> fileDescriptionMap;
+    static List<UnreadMessages> unreadMessagesList;
+    static List<UnreadMessages> requestIdList;
+    static int reqID = 0;
     static int fileId = 0;
     static int MIN_CHUNK_SIZE = 500;
     static int MAX_CHUNK_SIZE = 1500;
@@ -24,6 +28,8 @@ public class Server {
         clientMap = new HashMap<>();
         activeClients = new ArrayList<>();
         fileDescriptionMap = new HashMap<>();
+        unreadMessagesList = new ArrayList<>();
+        requestIdList = new ArrayList<>();
         fileId = 0;
         try {
             serverSocket = new ServerSocket(40000);
@@ -53,6 +59,14 @@ public class Server {
             }
             System.out.println("Log in successful for " + clientName);
             networkUtil.write("Welcome: " + clientName);
+            for(UnreadMessages unreadMessages: requestIdList){
+                UnreadMessages unreadMessages1 = new UnreadMessages(unreadMessages.getRequestID());
+                unreadMessages1.setFunction(unreadMessages.getFunction());
+                unreadMessages1.setFrom(unreadMessages.getFrom());
+                unreadMessages1.setText(unreadMessages.getText());
+                unreadMessages1.setTo(clientName);
+                unreadMessagesList.add(unreadMessages1);
+            }
             new ReadThreadServer(clientName, networkUtil);
         }
         else if(activeClients.contains(clientName)){

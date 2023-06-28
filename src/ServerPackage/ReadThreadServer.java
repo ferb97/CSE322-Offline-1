@@ -2,9 +2,12 @@ package ServerPackage;
 
 import ObjectPackage.FileDescription;
 import ObjectPackage.Message;
+import ObjectPackage.UnreadMessages;
 import util.NetworkUtil;
 
 import java.io.*;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Random;
 
 public class ReadThreadServer implements Runnable{
@@ -22,6 +25,7 @@ public class ReadThreadServer implements Runnable{
     public void run() {
         try {
             while (true) {
+                System.out.println("\n\t\t\t------------------------\n");
                Object object = networkUtil.read();
                if(object instanceof String){
                    String str = (String) object;
@@ -55,6 +59,9 @@ public class ReadThreadServer implements Runnable{
                        }
                        System.out.println("Sending All files List of " + clientName + " to " + clientName);
                        networkUtil.write(clientFilesString);
+                       if(clientFilesString.equalsIgnoreCase("FileID - FileName - FileType\n")){
+                           continue;
+                       }
                        Object object1 = networkUtil.read();
                        Message message = (Message) object1;
                        if(message.getText().equalsIgnoreCase("No")){
@@ -81,11 +88,11 @@ public class ReadThreadServer implements Runnable{
                        }
                        String str2 = (String) networkUtil.read();
                        System.out.println(str2);
-                       if(str2.equalsIgnoreCase(fileDescription1.getFileName() + " already exists in the download directory of " + clientName)){
+                       /*if(str2.equalsIgnoreCase(fileDescription1.getFileName() + " already exists in the download directory of " + clientName)){
                            networkUtil.write("File Download Failed");
                            System.out.println("File Download Failed");
                            continue;
-                       }
+                       }*/
                        System.out.println("File Name: " + fileDescription1.getFileName() + ", Chunk Size: " + Server.MAX_CHUNK_SIZE);
                        int chunkNo = 0;
                        byte[] buffer = new byte[Server.MAX_CHUNK_SIZE];
@@ -112,6 +119,9 @@ public class ReadThreadServer implements Runnable{
                        }
                        System.out.println("Sending All files List of Other Clients to " + clientName);
                        networkUtil.write(clientFilesString);
+                       if(clientFilesString.equalsIgnoreCase("FileID - FileName - FileType\n")){
+                           continue;
+                       }
                        Object object1 = networkUtil.read();
                        Message message = (Message) object1;
                        if(message.getText().equalsIgnoreCase("No")){
@@ -138,11 +148,11 @@ public class ReadThreadServer implements Runnable{
                        }
                        String str2 = (String) networkUtil.read();
                        System.out.println(str2);
-                       if(str2.equalsIgnoreCase(fileDescription1.getFileName() + " already exists in the download directory of " + clientName)){
+                       /*if(str2.equalsIgnoreCase(fileDescription1.getFileName() + " already exists in the download directory of " + clientName)){
                            networkUtil.write("File Download Failed");
                            System.out.println("File Download Failed");
                            continue;
-                       }
+                       }*/
                        System.out.println("File Name: " + fileDescription1.getFileName() + ", Chunk Size: " + Server.MAX_CHUNK_SIZE);
                        int chunkNo = 0;
                        byte[] buffer = new byte[Server.MAX_CHUNK_SIZE];
@@ -159,6 +169,48 @@ public class ReadThreadServer implements Runnable{
                        System.out.println("File Download Complete");
                        networkUtil.write("File Download Complete");
                    }
+                   else if (str.equalsIgnoreCase("Requesting a File")) {
+                       ++Server.reqID;
+                       UnreadMessages unreadMessages2 = new UnreadMessages(Server.reqID);
+                       networkUtil.write(unreadMessages2);
+                       Object object1 = networkUtil.read();
+                       UnreadMessages unreadMessages = (UnreadMessages) object1;
+                       Server.requestIdList.add(unreadMessages);
+                       for (String clientName1 : Server.clientMap.keySet()) {
+                           if (!clientName1.equalsIgnoreCase(unreadMessages.getFrom())) {
+                               UnreadMessages unreadMessages1 = new UnreadMessages(unreadMessages.getRequestID());
+                               unreadMessages1.setFrom(unreadMessages.getFrom());
+                               unreadMessages1.setTo(clientName1);
+                               unreadMessages1.setText(unreadMessages.getText());
+                               unreadMessages1.setFunction(unreadMessages.getFunction());
+                               Server.unreadMessagesList.add(unreadMessages1);
+                           }
+                       }
+                       networkUtil.write("File Request added to Unread Messages of other clients");
+                       System.out.println("File Request added to Unread Messages of other clients");
+                   }
+                   else if(str.equalsIgnoreCase("Show Unread Messages")){
+                       String unreadMessagesString = "";
+                       int messageNo = 0;
+                       for(UnreadMessages unreadMessages: Server.unreadMessagesList){
+                           if(unreadMessages.getTo().equalsIgnoreCase(clientName)){
+                               ++messageNo;
+                               unreadMessagesString += "\nMessage No: " + messageNo;
+                               unreadMessagesString += "\nFrom: " + unreadMessages.getFrom();
+                               unreadMessagesString += "\n" + unreadMessages.getFunction() + " with Request ID: " + unreadMessages.getRequestID();
+                               unreadMessagesString += "\n" + unreadMessages.getText() + "\n\n";
+                           }
+                       }
+                       networkUtil.write(unreadMessagesString);
+                       System.out.println("Showing Unread Messages to " + clientName);
+                       for(int i = 0; i < Server.unreadMessagesList.size(); i++){
+                           if(Server.unreadMessagesList.get(i).getTo().equalsIgnoreCase(clientName)){
+                               Server.unreadMessagesList.remove(i);
+                               i--;
+                           }
+                       }
+                       System.out.println("All unread messages of " + clientName + " have been removed");
+                   }
                }
                else if(object instanceof Message){
                    Message message = (Message) object;
@@ -170,10 +222,25 @@ public class ReadThreadServer implements Runnable{
                        String filepath = "src/ServerPackage/" + clientName + "/" + fileName;
                        File file1 = new File(filepath);
                        if(file1.exists()){
-                           System.out.println(fileName + " already exists in the server directory of " + clientName);
+                           /*System.out.println(fileName + " already exists in the server directory of " + clientName);
                            Message message2 = new Message(fileName + " already exists in the server directory of " + clientName, "File Transmission Status");
                            networkUtil.write(message2);
-                           continue;
+                           continue;*/
+                           System.out.println("Replacing the old version of " + fileName + " with the new version");
+                           Iterator<Map.Entry<Integer, FileDescription> > iterator = Server.fileDescriptionMap.entrySet().iterator();
+                           while (iterator.hasNext()) {
+                               Map.Entry<Integer, FileDescription> entry = iterator.next();
+                               FileDescription fileDescription1 = entry.getValue();
+                               if(fileDescription1.getFilePath().equalsIgnoreCase(filepath)){
+                                   iterator.remove();
+                               }
+                           }
+                           /*for(int fileId1: Server.fileDescriptionMap.keySet()){
+                               FileDescription fileDescription1 = Server.fileDescriptionMap.get(fileId1);
+                               if(fileDescription1.getFilePath().equalsIgnoreCase(filepath)){
+                                   Server.fileDescriptionMap.remove(fileId1);
+                               }
+                           }*/
                        }
                        Random random = new Random();
                        int chunkSize = random.nextInt(Server.MAX_CHUNK_SIZE - Server.MIN_CHUNK_SIZE + 1) + Server.MIN_CHUNK_SIZE;
@@ -211,6 +278,121 @@ public class ReadThreadServer implements Runnable{
                            networkUtil.write("File Uploaded Successfully");
                            FileDescription fileDescription = new FileDescription(fileName, clientName, fileType, filepath);
                            Server.fileDescriptionMap.put(fileid, fileDescription);
+                       }
+                       else{
+                           System.out.println("File Upload Failed");
+                           networkUtil.write("File Upload Failed");
+                           file1.delete();
+                       }
+                   }
+               }
+               else if(object instanceof UnreadMessages) {
+                   UnreadMessages unreadMessages = (UnreadMessages) object;
+                   if(unreadMessages.getFunction().equalsIgnoreCase("Uploading a Requested File")){
+                       /*if(Server.requestIdMap.get(unreadMessages.getRequestID()) == null){
+                           System.out.println("Invalid Request ID. Upload not possible");
+                           networkUtil.write("Invalid Request ID. Upload not possible");
+                           continue;
+                       }
+                       if(clientName.equalsIgnoreCase(Server.requestIdMap.get(unreadMessages.getRequestID()))){
+                           System.out.println("The Requesting Person is Trying to Upload the File. Upload not possible");
+                           networkUtil.write("The Requesting Person is Trying to Upload the File. Upload not possible");
+                           continue;
+                       }*/
+                       int reqId = unreadMessages.getRequestID();
+                       String requestFrom = "";
+                       boolean found = false;
+                       for(UnreadMessages unreadMessages2: Server.requestIdList){
+                           if(reqId == unreadMessages2.getRequestID()){
+                               requestFrom = unreadMessages2.getFrom();
+                               found = true;
+                               break;
+                           }
+                       }
+                       if(!found){
+                           System.out.println("Invalid Request ID. Upload not possible");
+                           networkUtil.write("Invalid Request ID. Upload not possible");
+                           continue;
+                       }
+                       if(requestFrom.equalsIgnoreCase(clientName)){
+                           System.out.println("The Requesting Person is Trying to Upload the File. Upload not possible");
+                           networkUtil.write("The Requesting Person is Trying to Upload the File. Upload not possible");
+                           continue;
+                       }
+                       networkUtil.write("Send File Name and File Size");
+                       Object object1 = networkUtil.read();
+                       Message message = (Message) object1;
+                       System.out.println("File name: " + message.getText() + ", File Size: " + message.getFileSize() + ", File Type: " + message.getFileType());
+                       String fileName = message.getText();
+                       String fileType = message.getFileType();
+                       String filepath = "src/ServerPackage/" + clientName + "/" + fileName;
+                       File file1 = new File(filepath);
+                       if(file1.exists()){
+                           /*System.out.println(fileName + " already exists in the server directory of " + clientName);
+                           Message message2 = new Message(fileName + " already exists in the server directory of " + clientName, "File Transmission Status");
+                           networkUtil.write(message2);
+                           continue;*/
+                           System.out.println("Replacing the old version of " + fileName + " with the new version");
+                           Iterator<Map.Entry<Integer, FileDescription> > iterator = Server.fileDescriptionMap.entrySet().iterator();
+                           while (iterator.hasNext()) {
+                               Map.Entry<Integer, FileDescription> entry = iterator.next();
+                               FileDescription fileDescription1 = entry.getValue();
+                               if(fileDescription1.getFilePath().equalsIgnoreCase(filepath)){
+                                   iterator.remove();
+                               }
+                           }
+                           /*for(int fileId1: Server.fileDescriptionMap.keySet()){
+                               FileDescription fileDescription1 = Server.fileDescriptionMap.get(fileId1);
+                               if(fileDescription1.getFilePath().equalsIgnoreCase(filepath)){
+                                   Server.fileDescriptionMap.remove(fileId1);
+                               }
+                           }*/
+                       }
+                       Random random = new Random();
+                       int chunkSize = random.nextInt(Server.MAX_CHUNK_SIZE - Server.MIN_CHUNK_SIZE + 1) + Server.MIN_CHUNK_SIZE;
+                       Message message1 = new Message("You can start file transmission", "File Transmission Status");
+                       message1.setChunkSize(chunkSize);
+                       int fileid = ++(Server.fileId);
+                       message1.setFileID(fileid);
+                       networkUtil.write(message1);
+                       int chunkNo = 0;
+                       byte[] buffer = new byte[chunkSize];
+                       int bytesRead;
+                       ObjectInputStream ois = networkUtil.getOis();
+                       BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(filepath));
+                       int totalBytesRead = 0;
+                       while ((bytesRead = ois.read(buffer)) != -1){
+                           int chunkReceived = 0;
+                           bufferedOutputStream.write(buffer, 0, bytesRead);
+                           bufferedOutputStream.flush();
+                           chunkReceived += bytesRead;
+                           while(ois.available() > 0) {
+                               bytesRead = ois.read(buffer);
+                               bufferedOutputStream.write(buffer, 0, bytesRead);
+                               bufferedOutputStream.flush();
+                               chunkReceived += bytesRead;
+                           }
+                           totalBytesRead += chunkReceived;
+                           ++chunkNo;
+                           System.out.println("ChunkNo: " + chunkNo + " received which is " + chunkReceived + " bytes");
+                           networkUtil.write("ChunkNo: " + chunkNo + " received which is " + chunkReceived + " bytes");
+                       }
+                       String str1 = (String) networkUtil.read();
+                       System.out.println(str1);
+                       if(totalBytesRead == message.getFileSize()){
+                           System.out.println("File Uploaded Successfully");
+                           networkUtil.write("File Uploaded Successfully");
+                           FileDescription fileDescription = new FileDescription(fileName, clientName, fileType, filepath);
+                           Server.fileDescriptionMap.put(fileid, fileDescription);
+                           UnreadMessages unreadMessages1 = new UnreadMessages(reqId);
+                           unreadMessages1.setFunction("Uploading a Requested File");
+                           unreadMessages1.setFrom(clientName);
+                           unreadMessages1.setTo(requestFrom);
+                           String str2 = "FileID: " + fileid + "\nFile Name: " + fileName;
+                           str2 += "\nYou can Download the Requested File from the Public Files of " + clientName;
+                           unreadMessages1.setText(str2);
+                           Server.unreadMessagesList.add(unreadMessages1);
+                           System.out.println("Notification of uploading the requested file from " + clientName + " has been sent to " + requestFrom);
                        }
                        else{
                            System.out.println("File Upload Failed");
