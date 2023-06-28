@@ -1,5 +1,6 @@
 package ServerPackage;
 
+import ObjectPackage.Chunk;
 import ObjectPackage.FileDescription;
 import ObjectPackage.Message;
 import ObjectPackage.UnreadMessages;
@@ -9,6 +10,8 @@ import java.io.*;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
+
+import static java.lang.Thread.sleep;
 
 public class ReadThreadServer implements Runnable{
     private Thread thr;
@@ -242,6 +245,19 @@ public class ReadThreadServer implements Runnable{
                                }
                            }*/
                        }
+                       /*else{
+                           try {
+                               if (file1.createNewFile()) {
+                                   System.out.println("File created successfully");
+                                   System.out.println("File exists: " + file1.exists());
+                               } else {
+                                   System.out.println("File already exists");
+                               }
+                           } catch (IOException e) {
+                               System.out.println("An error occurred while creating the file");
+                               e.printStackTrace();
+                           }
+                       }*/
                        Random random = new Random();
                        int chunkSize = random.nextInt(Server.MAX_CHUNK_SIZE - Server.MIN_CHUNK_SIZE + 1) + Server.MIN_CHUNK_SIZE;
                        Message message1 = new Message("You can start file transmission", "File Transmission Status");
@@ -250,7 +266,7 @@ public class ReadThreadServer implements Runnable{
                        message1.setFileID(fileid);
                        networkUtil.write(message1);
                        int chunkNo = 0;
-                       byte[] buffer = new byte[chunkSize];
+                       byte[] buffer = new byte[message1.getChunkSize()];
                        int bytesRead;
                        ObjectInputStream ois = networkUtil.getOis();
                        BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(filepath));
@@ -268,11 +284,40 @@ public class ReadThreadServer implements Runnable{
                            }
                            totalBytesRead += chunkReceived;
                            ++chunkNo;
+                           /*if(chunkNo == 8){
+                               sleep(15000);
+                           }*/
                            System.out.println("ChunkNo: " + chunkNo + " received which is " + chunkReceived + " bytes");
                            networkUtil.write("ChunkNo: " + chunkNo + " received which is " + chunkReceived + " bytes");
                        }
+                       /*while (true){
+                           Object obj1 = networkUtil.read();
+                           if(obj1 instanceof Chunk) {
+                               Chunk chunk = (Chunk) obj1;
+                               bufferedOutputStream.write(chunk.getData(), 0, chunk.getLength());
+                               bufferedOutputStream.flush();
+                               totalBytesRead += chunk.getLength();
+                               *//*if(chunk.getChunkNo() == 8){
+                                   sleep(30000);
+                               }*//*
+                               System.out.println("ChunkNo: " + chunk.getChunkNo() + " received which is " + chunk.getLength() + " bytes");
+                               networkUtil.write("ChunkNo: " + chunk.getChunkNo() + " received which is " + chunk.getLength() + " bytes");
+                           }
+                           else if(obj1 instanceof String){
+                               str1 = (String) obj1;
+                               System.out.println(str1);
+                               break;
+                           }
+                       }*/
+                       bufferedOutputStream.close();
                        String str1 = (String) networkUtil.read();
                        System.out.println(str1);
+                       if(str1.equalsIgnoreCase("Timeout: Server did not acknowledge chunk in 30 seconds")){
+                           System.out.println("File Upload Failed");
+                           networkUtil.write("File Upload Failed");
+                           file1.delete();
+                           continue;
+                       }
                        if(totalBytesRead == message.getFileSize()){
                            System.out.println("File Uploaded Successfully");
                            networkUtil.write("File Uploaded Successfully");
@@ -374,11 +419,21 @@ public class ReadThreadServer implements Runnable{
                            }
                            totalBytesRead += chunkReceived;
                            ++chunkNo;
+                           /*if(chunkNo == 8){
+                               sleep(15000);
+                           }*/
                            System.out.println("ChunkNo: " + chunkNo + " received which is " + chunkReceived + " bytes");
                            networkUtil.write("ChunkNo: " + chunkNo + " received which is " + chunkReceived + " bytes");
                        }
+                       bufferedOutputStream.close();
                        String str1 = (String) networkUtil.read();
                        System.out.println(str1);
+                       if(str1.equalsIgnoreCase("Timeout: Server did not acknowledge chunk in 30 seconds")){
+                           System.out.println("File Upload Failed");
+                           networkUtil.write("File Upload Failed");
+                           file1.delete();
+                           continue;
+                       }
                        if(totalBytesRead == message.getFileSize()){
                            System.out.println("File Uploaded Successfully");
                            networkUtil.write("File Uploaded Successfully");

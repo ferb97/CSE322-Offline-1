@@ -4,6 +4,8 @@ import util.NetworkUtil;
 
 import java.io.File;
 import java.util.Scanner;
+import java.net.Socket;
+import java.net.SocketTimeoutException;
 
 public class Client {
 
@@ -13,6 +15,7 @@ public class Client {
             Scanner scanner = new Scanner(System.in);
             String clientName = scanner.nextLine();
             NetworkUtil networkUtil = new NetworkUtil(serverAddress, serverPort);
+            networkUtil.getSocket().setSoTimeout(30000);
             networkUtil.write(clientName);
             String str = (String) networkUtil.read();
             System.out.println(str);

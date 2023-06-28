@@ -50,5 +50,13 @@ public class NetworkUtil {
     public void setOis(ObjectInputStream ois) {
         this.ois = ois;
     }
+
+    public Socket getSocket() {
+        return socket;
+    }
+
+    public void setSocket(Socket socket) {
+        this.socket = socket;
+    }
 }
 

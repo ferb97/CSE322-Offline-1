@@ -1,11 +1,14 @@
 package ClientPackage;
 
+import ObjectPackage.Chunk;
 import ObjectPackage.Message;
 import ObjectPackage.UnreadMessages;
 import util.NetworkUtil;
 
 import java.io.*;
 import java.util.Scanner;
+import java.net.Socket;
+import java.net.SocketTimeoutException;
 
 public class WriteThreadClient implements Runnable{
     private Thread thr;
@@ -142,7 +145,7 @@ public class WriteThreadClient implements Runnable{
                             chunkReceived += bytesRead;
                         }
                         ++chunkNo;
-                        System.out.println("ChunkNo: " + chunkNo + " received which is " + chunkReceived + " bytes");
+                        //System.out.println("ChunkNo: " + chunkNo + " received which is " + chunkReceived + " bytes");
                         networkUtil.write("Got chunkNo: " + chunkNo + " with " + chunkReceived + " bytes");
                     }
                     String str2 = (String) networkUtil.read();
@@ -234,7 +237,7 @@ public class WriteThreadClient implements Runnable{
                             chunkReceived += bytesRead;
                         }
                         ++chunkNo;
-                        System.out.println("ChunkNo: " + chunkNo + " received which is " + chunkReceived + " bytes");
+                        //System.out.println("ChunkNo: " + chunkNo + " received which is " + chunkReceived + " bytes");
                         networkUtil.write("Got chunkNo: " + chunkNo + " with " + chunkReceived + " bytes");
                     }
                     String str2 = (String) networkUtil.read();
@@ -279,6 +282,7 @@ public class WriteThreadClient implements Runnable{
                         int chunkNo = 0;
                         byte[] buffer = new byte[message1.getChunkSize()];
                         int bytesRead;
+                        boolean isDone = true;
                         ObjectOutputStream oos = networkUtil.getOos();
                         BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream(fileName));
                         while ((bytesRead = bufferedInputStream.read(buffer)) != -1){
@@ -286,13 +290,52 @@ public class WriteThreadClient implements Runnable{
                             oos.flush();
                             ++chunkNo;
                             System.out.println("ChunkNo: " + chunkNo + " with " + bytesRead + " bytes is sent");
-                            String str1 = (String) networkUtil.read();
-                            System.out.println("Server: " + str1);
+                            try {
+                                String str1 = (String) networkUtil.read();
+                                System.out.println("Server: " + str1);
+                            }
+                            catch (SocketTimeoutException e) {
+                                System.out.println("Timeout: Server did not acknowledge chunk in 30 seconds");
+                                isDone = false;
+                                break;
+                            }
                         }
-                        System.out.println("File Upload Finished");
-                        oos.writeUnshared("File Upload Finished");
-                        String str2 = (String) networkUtil.read();
-                        System.out.println("Server: " + str2);
+                        bufferedInputStream.close();
+                        /*while ((bytesRead = bufferedInputStream.read(buffer)) != -1){
+                            ++chunkNo;
+                            networkUtil.write(new Chunk(chunkNo, bytesRead, buffer));
+                            System.out.println("ChunkNo: " + chunkNo + " with " + bytesRead + " bytes is sent");
+                            try {
+                                String str1 = (String) networkUtil.read();
+                                System.out.println("Server: " + str1);
+                            }
+                            catch (SocketTimeoutException e) {
+                                System.out.println("Timeout: Server did not acknowledge chunk");
+                                isDone = false;
+                                break;
+                            }
+                        }*/
+                        if(isDone) {
+                            System.out.println("File Upload Finished");
+                            networkUtil.write("File Upload Finished");
+                            String str2 = (String) networkUtil.read();
+                            System.out.println("Server: " + str2);
+                        }
+                        else {
+                            while(true) {
+                                try {
+                                    String str2 = (String) networkUtil.read();
+                                    System.out.println("Server: " + str2);
+                                    networkUtil.write("Timeout: Server did not acknowledge chunk in 30 seconds");
+                                    str2 = (String) networkUtil.read();
+                                    System.out.println("Server: " + str2);
+                                    break;
+                                }
+                                catch(SocketTimeoutException e){
+                                    continue;
+                                }
+                            }
+                        }
                     }
                     else{
                         System.out.println("Server: " + message1.getText());
@@ -365,6 +408,7 @@ public class WriteThreadClient implements Runnable{
                         int chunkNo = 0;
                         byte[] buffer = new byte[message1.getChunkSize()];
                         int bytesRead;
+                        boolean isDone = true;
                         ObjectOutputStream oos = networkUtil.getOos();
                         BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream(fileName));
                         while ((bytesRead = bufferedInputStream.read(buffer)) != -1){
@@ -372,13 +416,38 @@ public class WriteThreadClient implements Runnable{
                             oos.flush();
                             ++chunkNo;
                             System.out.println("ChunkNo: " + chunkNo + " with " + bytesRead + " bytes is sent");
-                            String str1 = (String) networkUtil.read();
-                            System.out.println("Server: " + str1);
+                            try {
+                                String str1 = (String) networkUtil.read();
+                                System.out.println("Server: " + str1);
+                            }
+                            catch (SocketTimeoutException e) {
+                                System.out.println("Timeout: Server did not acknowledge chunk in 30 seconds");
+                                isDone = false;
+                                break;
+                            }
                         }
-                        System.out.println("File Upload Finished");
-                        oos.writeUnshared("File Upload Finished");
-                        String str2 = (String) networkUtil.read();
-                        System.out.println("Server: " + str2);
+                        bufferedInputStream.close();
+                        if(isDone) {
+                            System.out.println("File Upload Finished");
+                            networkUtil.write("File Upload Finished");
+                            String str2 = (String) networkUtil.read();
+                            System.out.println("Server: " + str2);
+                        }
+                        else {
+                            while(true) {
+                                try {
+                                    String str2 = (String) networkUtil.read();
+                                    System.out.println("Server: " + str2);
+                                    networkUtil.write("Timeout: Server did not acknowledge chunk in 30 seconds");
+                                    str2 = (String) networkUtil.read();
+                                    System.out.println("Server: " + str2);
+                                    break;
+                                }
+                                catch(SocketTimeoutException e){
+                                    continue;
+                                }
+                            }
+                        }
                     }
                     else{
                         System.out.println("Server: " + message1.getText());
