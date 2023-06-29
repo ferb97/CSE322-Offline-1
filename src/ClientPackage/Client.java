@@ -14,11 +14,14 @@ public class Client {
             System.out.print("Enter name of the client: ");
             Scanner scanner = new Scanner(System.in);
             String clientName = scanner.nextLine();
+
             NetworkUtil networkUtil = new NetworkUtil(serverAddress, serverPort);
             networkUtil.getSocket().setSoTimeout(30000);
+
             networkUtil.write(clientName);
             String str = (String) networkUtil.read();
             System.out.println(str);
+
             if(str.equalsIgnoreCase("Terminating connection with server")){
                 System.exit(1);
             }

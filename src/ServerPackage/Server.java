@@ -32,6 +32,7 @@ public class Server {
         unreadMessagesList = new ArrayList<>();
         requestIdList = new ArrayList<>();
         fileId = 0;
+
         try {
             serverSocket = new ServerSocket(40000);
             while (true) {
@@ -46,11 +47,13 @@ public class Server {
     public void serve(Socket clientSocket) throws IOException, ClassNotFoundException {
         NetworkUtil networkUtil = new NetworkUtil(clientSocket);
         String clientName = (String) networkUtil.read();
+
         if(clientMap.get(clientName) == null){
             clientMap.put(clientName, networkUtil);
             activeClients.add(clientName);
             String filepath = "src/ServerPackage/" + clientName;
             File directory = new File(filepath);
+
             if(!directory.exists()){
                 directory.mkdirs();
                 System.out.println("Directory Created for " + clientName);
@@ -58,8 +61,10 @@ public class Server {
             else{
                 System.out.println("Directory Already Exists");
             }
+
             System.out.println("Log in successful for " + clientName);
             networkUtil.write("Welcome: " + clientName);
+
             for(UnreadMessages unreadMessages: requestIdList){
                 UnreadMessages unreadMessages1 = new UnreadMessages(unreadMessages.getRequestID());
                 unreadMessages1.setFunction(unreadMessages.getFunction());
@@ -68,6 +73,7 @@ public class Server {
                 unreadMessages1.setTo(clientName);
                 unreadMessagesList.add(unreadMessages1);
             }
+
             new ReadThreadServer(clientName, networkUtil);
         }
         else if(activeClients.contains(clientName)){
