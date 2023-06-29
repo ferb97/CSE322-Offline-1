@@ -253,6 +253,13 @@ public class ReadThreadServer implements Runnable{
                        String filepath = "src/ServerPackage/" + clientName + "/" + fileName;
                        File file1 = new File(filepath);
 
+                       if(Server.currentBufferSize + message.getFileSize() > Server.MAX_BUFFER_SIZE){
+                           Message message2 = new Message("The combined size overflows the maximum buffer size", "File Transmission Status");
+                           System.out.println("File upload Failed");
+                           networkUtil.write(message2);
+                           continue;
+                       }
+
                        if(file1.exists()){
                            System.out.println("Replacing the old version of " + fileName + " with the new version");
                            Iterator<Map.Entry<Integer, FileDescription> > iterator = Server.fileDescriptionMap.entrySet().iterator();
@@ -280,6 +287,7 @@ public class ReadThreadServer implements Runnable{
                        ObjectInputStream ois = networkUtil.getOis();
                        BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(filepath));
                        int totalBytesRead = 0;
+                       Server.currentBufferSize += message1.getChunkSize();
 
                        while ((bytesRead = ois.read(buffer)) != -1){
                            int chunkReceived = 0;
@@ -304,6 +312,8 @@ public class ReadThreadServer implements Runnable{
                            networkUtil.write("ChunkNo: " + chunkNo + " received which is " + chunkReceived + " bytes");
                        }
 
+                       //sleep(5000);
+                       Server.currentBufferSize -= message1.getChunkSize();
                        bufferedOutputStream.close();
                        String str1 = (String) networkUtil.read();
                        System.out.println(str1);
@@ -369,6 +379,13 @@ public class ReadThreadServer implements Runnable{
                        String filepath = "src/ServerPackage/" + clientName + "/" + fileName;
                        File file1 = new File(filepath);
 
+                       if(Server.currentBufferSize + message.getFileSize() > Server.MAX_BUFFER_SIZE){
+                           Message message2 = new Message("The combined size overflows the maximum buffer size", "File Transmission Status");
+                           System.out.println("File upload Failed");
+                           networkUtil.write(message2);
+                           continue;
+                       }
+
                        if(file1.exists()){
                            System.out.println("Replacing the old version of " + fileName + " with the new version");
                            Iterator<Map.Entry<Integer, FileDescription> > iterator = Server.fileDescriptionMap.entrySet().iterator();
@@ -396,6 +413,7 @@ public class ReadThreadServer implements Runnable{
                        ObjectInputStream ois = networkUtil.getOis();
                        BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(filepath));
                        int totalBytesRead = 0;
+                       Server.currentBufferSize += message1.getChunkSize();
 
                        while ((bytesRead = ois.read(buffer)) != -1){
                            int chunkReceived = 0;
@@ -419,6 +437,9 @@ public class ReadThreadServer implements Runnable{
                            System.out.println("ChunkNo: " + chunkNo + " received which is " + chunkReceived + " bytes");
                            networkUtil.write("ChunkNo: " + chunkNo + " received which is " + chunkReceived + " bytes");
                        }
+
+                       //sleep(5000);
+                       Server.currentBufferSize -= message1.getChunkSize();
                        bufferedOutputStream.close();
                        String str1 = (String) networkUtil.read();
                        System.out.println(str1);

@@ -21,9 +21,10 @@ public class Server {
     static List<UnreadMessages> requestIdList;
     static int reqID = 0;
     static int fileId = 0;
+    static long currentBufferSize = 0;
     static int MIN_CHUNK_SIZE = 200;
     static int MAX_CHUNK_SIZE = 300;
-    static int MAX_BUFFER_SIZE = 5000;
+    static int MAX_BUFFER_SIZE = 7000;
 
     Server() {
         clientMap = new HashMap<>();
