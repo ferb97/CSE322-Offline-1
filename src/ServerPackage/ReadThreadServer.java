@@ -6,10 +6,12 @@ import ObjectPackage.UnreadMessages;
 import util.NetworkUtil;
 
 import java.io.*;
+import java.net.SocketException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 
+import static java.lang.System.exit;
 import static java.lang.Thread.sleep;
 
 public class ReadThreadServer implements Runnable{
@@ -25,6 +27,7 @@ public class ReadThreadServer implements Runnable{
     }
 
     public void run() {
+        boolean connectionClosed = false;
         try {
             while (true) {
                 System.out.println("\n\t\t\t------------------------\n");
@@ -245,7 +248,7 @@ public class ReadThreadServer implements Runnable{
                else if(object instanceof Message){
                    Message message = (Message) object;
 
-                   if(message.getFunction().equalsIgnoreCase("Upload")){
+                   if(message.getFunction().equalsIgnoreCase("Upload")) {
                        System.out.println("Upload request from " + clientName);
                        System.out.println("File name: " + message.getText() + ", File Size: " + message.getFileSize() + ", File Type: " + message.getFileType());
                        String fileName = message.getText();
@@ -253,20 +256,20 @@ public class ReadThreadServer implements Runnable{
                        String filepath = "src/ServerPackage/" + clientName + "/" + fileName;
                        File file1 = new File(filepath);
 
-                       if(Server.currentBufferSize + message.getFileSize() > Server.MAX_BUFFER_SIZE){
+                       if (Server.currentBufferSize + message.getFileSize() > Server.MAX_BUFFER_SIZE) {
                            Message message2 = new Message("The combined size overflows the maximum buffer size", "File Transmission Status");
                            System.out.println("File upload Failed");
                            networkUtil.write(message2);
                            continue;
                        }
 
-                       if(file1.exists()){
+                       if (file1.exists()) {
                            System.out.println("Replacing the old version of " + fileName + " with the new version");
-                           Iterator<Map.Entry<Integer, FileDescription> > iterator = Server.fileDescriptionMap.entrySet().iterator();
+                           Iterator<Map.Entry<Integer, FileDescription>> iterator = Server.fileDescriptionMap.entrySet().iterator();
                            while (iterator.hasNext()) {
                                Map.Entry<Integer, FileDescription> entry = iterator.next();
                                FileDescription fileDescription1 = entry.getValue();
-                               if(fileDescription1.getFilePath().equalsIgnoreCase(filepath)){
+                               if (fileDescription1.getFilePath().equalsIgnoreCase(filepath)) {
                                    iterator.remove();
                                }
                            }
@@ -289,30 +292,40 @@ public class ReadThreadServer implements Runnable{
                        int totalBytesRead = 0;
                        Server.currentBufferSize += message1.getChunkSize();
 
-                       while ((bytesRead = ois.read(buffer)) != -1){
-                           int chunkReceived = 0;
-                           bufferedOutputStream.write(buffer, 0, bytesRead);
-                           bufferedOutputStream.flush();
-                           chunkReceived += bytesRead;
-
-                           while(ois.available() > 0) {
-                               bytesRead = ois.read(buffer);
+                       while ((bytesRead = ois.read(buffer)) != -1) {
+                           try {
+                               int chunkReceived = 0;
                                bufferedOutputStream.write(buffer, 0, bytesRead);
                                bufferedOutputStream.flush();
                                chunkReceived += bytesRead;
+
+                               while (ois.available() > 0) {
+                                   bytesRead = ois.read(buffer);
+                                   bufferedOutputStream.write(buffer, 0, bytesRead);
+                                   bufferedOutputStream.flush();
+                                   chunkReceived += bytesRead;
+                               }
+
+                               totalBytesRead += chunkReceived;
+                               ++chunkNo;
+                               //sleep(4000);
+
+                               System.out.println("ChunkNo: " + chunkNo + " received which is " + chunkReceived + " bytes");
+                               networkUtil.write("ChunkNo: " + chunkNo + " received which is " + chunkReceived + " bytes");
                            }
-
-                           totalBytesRead += chunkReceived;
-                           ++chunkNo;
-
-                           /*if(chunkNo == 8){
-                               sleep(15000);
-                           }*/
-                           System.out.println("ChunkNo: " + chunkNo + " received which is " + chunkReceived + " bytes");
-                           networkUtil.write("ChunkNo: " + chunkNo + " received which is " + chunkReceived + " bytes");
+                           catch(SocketException e){
+                               System.out.println(clientName + " has exited");
+                               Server.activeClients.remove(clientName);
+                               connectionClosed = true;
+                               bufferedOutputStream.close();
+                               file1.delete();
+                               break;
+                           }
                        }
 
                        //sleep(5000);
+                       if(connectionClosed)
+                           break;
                        Server.currentBufferSize -= message1.getChunkSize();
                        bufferedOutputStream.close();
                        String str1 = (String) networkUtil.read();
@@ -415,30 +428,40 @@ public class ReadThreadServer implements Runnable{
                        int totalBytesRead = 0;
                        Server.currentBufferSize += message1.getChunkSize();
 
-                       while ((bytesRead = ois.read(buffer)) != -1){
-                           int chunkReceived = 0;
-                           bufferedOutputStream.write(buffer, 0, bytesRead);
-                           bufferedOutputStream.flush();
-                           chunkReceived += bytesRead;
-
-                           while(ois.available() > 0) {
-                               bytesRead = ois.read(buffer);
+                       while ((bytesRead = ois.read(buffer)) != -1) {
+                           try {
+                               int chunkReceived = 0;
                                bufferedOutputStream.write(buffer, 0, bytesRead);
                                bufferedOutputStream.flush();
                                chunkReceived += bytesRead;
+
+                               while (ois.available() > 0) {
+                                   bytesRead = ois.read(buffer);
+                                   bufferedOutputStream.write(buffer, 0, bytesRead);
+                                   bufferedOutputStream.flush();
+                                   chunkReceived += bytesRead;
+                               }
+
+                               totalBytesRead += chunkReceived;
+                               ++chunkNo;
+                               //sleep(4000);
+
+                               System.out.println("ChunkNo: " + chunkNo + " received which is " + chunkReceived + " bytes");
+                               networkUtil.write("ChunkNo: " + chunkNo + " received which is " + chunkReceived + " bytes");
                            }
-
-                           totalBytesRead += chunkReceived;
-                           ++chunkNo;
-
-                           /*if(chunkNo == 8){
-                               sleep(15000);
-                           }*/
-                           System.out.println("ChunkNo: " + chunkNo + " received which is " + chunkReceived + " bytes");
-                           networkUtil.write("ChunkNo: " + chunkNo + " received which is " + chunkReceived + " bytes");
+                           catch(SocketException e){
+                               System.out.println(clientName + " has exited");
+                               Server.activeClients.remove(clientName);
+                               connectionClosed = true;
+                               bufferedOutputStream.close();
+                               file1.delete();
+                               break;
+                           }
                        }
 
                        //sleep(5000);
+                       if(connectionClosed)
+                           break;
                        Server.currentBufferSize -= message1.getChunkSize();
                        bufferedOutputStream.close();
                        String str1 = (String) networkUtil.read();
@@ -478,11 +501,17 @@ public class ReadThreadServer implements Runnable{
                    }
                }
             }
-        } catch (Exception e) {
+        } catch (SocketException e) {
+            System.out.println(clientName + " has exited");
+            Server.activeClients.remove(clientName);
+        }
+        catch (Exception e) {
             System.out.println(e);
-        } finally {
+        }finally {
             try {
-                networkUtil.closeConnection();
+                if(!connectionClosed) {
+                    networkUtil.closeConnection();
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
